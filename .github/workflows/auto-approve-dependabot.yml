@@ -1,51 +1,44 @@
 # -----------------------------
 # Workflow Name
 # -----------------------------
-name: Auto-Approve and Merge Dependabot PRs  # This is the name displayed in the GitHub Actions UI
+name: Auto-Approve and Merge Dependabot PRs  # Appears in the Actions tab
 
 # -----------------------------
 # Workflow Triggers
 # -----------------------------
 on:
-  pull_request:                             # Trigger this workflow automatically for pull request events
-    types: [opened, reopened, synchronize]  # Run when PRs are opened, reopened, or updated (commits pushed)
-  workflow_dispatch:                        # Allow manual triggering from the GitHub Actions "Run workflow" button
+  workflow_dispatch:                        # ✅ Manual trigger
+  pull_request:                             # Also run automatically for Dependabot PRs
+    types: [opened, reopened, synchronize]  # These are PR events that trigger it
 
 # -----------------------------
 # Workflow Permissions
 # -----------------------------
 permissions:
-  pull-requests: write                      # Needed to approve and merge pull requests
-  contents: read                            # Read access to repository contents (safe default minimum)
+  pull-requests: write                      # Needed to approve/merge PRs
+  contents: read                            # Safe minimal permission
 
 # -----------------------------
-# Jobs Section
+# Job Definition
 # -----------------------------
 jobs:
-  auto-approve:                             # Define a job called "auto-approve"
-    if: github.actor == 'dependabot[bot]'   # Only run this job if the PR author is Dependabot
-    runs-on: ubuntu-latest                  # Use the latest Ubuntu runner environment provided by GitHub
+  auto-approve:
+    if: github.actor == 'dependabot[bot]'   # Only runs for Dependabot
+    runs-on: ubuntu-latest                  # GitHub-hosted runner environment
 
-    steps:                                  # List of steps that this job performs
-
-      # -----------------------------
+    steps:
       # Step 1: Approve the PR
-      # -----------------------------
-      - name: Approve Dependabot PR         # Step name shown in GitHub Actions UI
-        run: |                              # Run shell commands directly in the runner
-          # Approve the current PR using the GitHub CLI (gh)
-          gh pr review "$PR_URL" --approve  # Executes an approval for the PR URL provided below
-        env:                                # Environment variables passed to the above command
-          PR_URL: ${{ github.event.pull_request.html_url }}  # URL of the current PR (provided automatically by GitHub)
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}          # Built-in token used for authentication to GitHub API
+      - name: Approve Dependabot PR
+        run: |
+          gh pr review "$PR_URL" --approve
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # -----------------------------
-      # Step 2: Enable Auto-Merge
-      # -----------------------------
-      - name: Enable auto-merge (squash)    # Step name shown in the workflow UI
-        run: |                              # Run shell commands
-          # Enable auto-merge for this PR using squash merge method
-          gh pr merge "$PR_URL" --auto --squash  # This will auto-merge once all required checks pass
-        env:                                # Provide the same environment variables
-          PR_URL: ${{ github.event.pull_request.html_url }}  # Current PR URL again
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}          # GitHub authentication token
+      # Step 2: Enable auto-merge
+      - name: Enable auto-merge (squash)
+        run: |
+          gh pr merge "$PR_URL" --auto --squash
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
